@@ -1,0 +1,29 @@
+#+TITLE: defun-ivy+
+#+AUTHOR: Karim Aziiev
+#+EMAIL: karim.aziiev@gmail.com
+#+DATE: 2021
+#+LANGUAGE: en
+#+TEXINFO_DEFFN: t
+#+OPTIONS: H:4 num:3 toc:2 creator:t
+
+
+The ~defun-ivy+~ macro allows quickly create and configure interactive functions for ~ivy~.
+
+** Usage
+#+BEGIN_SRC emacs-lisp
+(defun-ivy+ km-browse-ivy-chrome-history
+  :bind "C-c g h"
+  :collection (km-browse-init-chrome-history-candidates)
+  :prompt "Select history\s"
+  :initial-input (km-get-word-or-region)
+  :multi-action (lambda (marked)
+                  (dolist (it marked)
+                    (km-browse-action-default it)))
+  :actions '(("C-j" km-browse-eww-action "eww")
+             ("RET" km-browse-action-default "chrome")
+             ("C-c o" km-browse-eww-in-other-window-action "eww in other window")
+             ("C-c x" km-browse-xvidget-action)
+             ("C-c k d" km-browse-download-url))
+  :display-fn 'km-browse-display-fn)
+
+#+END_SRC
