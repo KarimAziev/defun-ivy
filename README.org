@@ -6,10 +6,10 @@
 #+TEXINFO_DEFFN: t
 #+OPTIONS: H:4 num:3 toc:2 creator:t
 
+The `defun-ivy` macro allows you to easy define commands based on `ivy-read`.
 
-The ~defun-ivy+~ macro allows quickly create and configure interactive functions for ~ivy~.
+** Example
 
-** Usage
 #+BEGIN_SRC emacs-lisp
 (defun-ivy+ km-browse-ivy-chrome-history
   :bind "C-c g h"
@@ -21,9 +21,51 @@ The ~defun-ivy+~ macro allows quickly create and configure interactive functions
                     (km-browse-action-default it)))
   :actions '(("C-j" km-browse-eww-action "eww")
              ("RET" km-browse-action-default "chrome")
-             ("C-c o" km-browse-eww-in-other-window-action "eww in other window")
              ("C-c x" km-browse-xvidget-action)
-             ("C-c k d" km-browse-download-url))
+             ("C-c k d" km-browse-download-url :no-exit))
   :display-fn 'km-browse-display-fn)
 
 #+END_SRC
+
+** Arguments
+
+
+|:actions           | A list of actions `(KEYBINDING ACTION DESCRIPTION)'.
+|                   | Can also contain keyword `:no-exit' to call action without
+|                   | exiting minibuffer.
+|                   | For example:
+|                   | `((\"C-c s\" my-action-1 \"description 1\")
+|                   |   (\"C-c i\" my-action-2 \"description 2\" :no-exit))'.
+|:bind              | A global keybinding for invoking you command.
+|:init              | A form to execute before `ivy-read'.
+|:prompt            | A string, normally ending in a colon and a space.
+|                   | Default value for prompt is empty string.
+|:collection        | An argument for `ivy-read'
+|:predicate         | An argument for `ivy-read'.
+|:require-match     | An argument for `ivy-read'.
+|:initial-input     | An argument for `ivy-read'.
+|:history           | An argument for `ivy-read'.
+|:preselect         | An argument for `ivy-read'.
+|:def               | An argument for `ivy-read'.
+|:keymap            | An argument for `ivy-read'.
+|:update-fn         | An argument for `ivy-read'.
+|:action            | An argument for `ivy-read'.
+|:multi-action      | An argument for `ivy-read'.
+|:unwind            | An argument for `ivy-read'.
+|:re-builder        | An argument for `ivy-read'.
+|:matcher           | An argument for `ivy-read'.
+|:dynamic-collection| An argument for `ivy-read'.
+|:extra-props       | An argument for `ivy-read'.
+|:sort              | An argument for `ivy-read'.
+|:sort-fn           | An argument for `ivy-configure'.
+|:display-fn        | An argument for `ivy-configure'
+|:height            | An argument for `ivy-configure'.
+|:exit-codes        | An argument for `ivy-configure'.
+|:occur             | An argument for `ivy-configure'.
+|:update-fn         | An argument for `ivy-configure'.
+|:unwind-fn         | An argument for `ivy-configure'.
+|:index-fn          | An argument for `ivy-configure'.
+|:format-fn         | An argument for `ivy-configure'.
+|:more-chars        | An argument for `ivy-configure'.
+|:grep-p            | An argument for `ivy-configure'.
+|:exit-codes        | An argument for `ivy-configure'."
