@@ -178,8 +178,8 @@ which perfoms `ivy-read' with ARG-LIST. Usage:
                            :dynamic-collection
                            :extra-props)
                          arg-list)
-                     :keymap map
-                     :action (nth 1 (car actions))
+                     :keymap ,map
+                     :action ,(nth 1 (car actions))
                      :caller ',name)))
      (put ',name 'function-documentation
           (format "Performs completions with `ivy-read' and actions:\s\n%s"
