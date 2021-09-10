@@ -160,7 +160,7 @@ which perfoms `ivy-read' with ARG-LIST. Usage:
            ,args
            (interactive)
            ,(plist-get arg-list :init)
-           (ivy-read (eval (or (plist-get arg-list :prompt) "\s"))
+           (ivy-read ,(or (plist-get arg-list :prompt) "\s")
                      ,(plist-get arg-list :collection)
                      ,@(defun-ivy-super-get-props
                          '(:predicate
