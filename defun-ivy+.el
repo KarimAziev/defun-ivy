@@ -40,64 +40,103 @@
                                 "[\\[]")) "\s"))))
              mapped-actions "\n"))
 
-(defun defun-ivy-bind-actions (actions-list)
-  (let* ((map (make-sparse-keymap))
-         (actions
-          (delq nil
-                (mapcar
-                 (lambda (a) (let*
-                            ((key-str (pop a))
-                             (func (seq-find 'functionp a))
-                             (arity (help-function-arglist func))
-                             (keybind (kbd key-str))
-                             (action-key
-                              (car (last (split-string
-                                          key-str "" t))))
-                             (descr
-                              (format "%s [%s]"
-                                      (or (seq-find
-                                           'stringp a)
-                                          (seq-find
-                                           (lambda (it)
-                                             (and
-                                              (not (string-prefix-p "ivy-" it))
-                                              (functionp (intern it))))
-                                           (split-string
-                                            (format "%s" func)
-                                            "[\s\f\t\n\r\v)(']+" t))
-                                          "")
-                                      key-str))
-                             (props (seq-filter 'keywordp a))
-                             (no-exit (memq :no-exit props)))
-                          (define-key map keybind
-                            (cond
-                             ((null arity)
-                              (lambda ()
-                                "Switch command."
-                                (interactive)
-                                (if no-exit
-                                    (funcall func)
-                                  (ivy-quit-and-run
-                                    (funcall func)))))
-                             ((and no-exit arity)
-                              (lambda ()
-                                "Persistent command."
-                                (interactive)
-                                (let ((current
-                                       (or
-                                        (ivy-state-current
-                                         ivy-last)
-                                        ivy-text))
-                                      (window (ivy--get-window ivy-last)))
-                                  (with-selected-window
-                                      (ivy--get-window window)
-                                    (funcall func current)))))
-                             (t (lambda ()
-                                  "Exit with action."
-                                  (interactive)
-                                  (ivy-exit-with-action func)))))
-                          (list action-key func descr)))
-                 actions-list))))
+(defun defun-ivy-bind-actions (actions-list &optional command-name)
+  (let ((map (make-sparse-keymap))
+        (actions)
+        (a)
+        (i))
+    (while (setq a (pop actions-list))
+      (setq i (if i (1+ i) 0))
+      (let ((name)
+            (name-parts (list command-name)))
+        (let ((key-str (pop a))
+              (func (seq-find 'functionp a)))
+          (let ((func-name (when (symbolp func)
+                             (symbol-name func)))
+                (arity (help-function-arglist func))
+                (keybind (kbd key-str))
+                (action-key
+                 (car (last (split-string
+                             key-str "" t))))
+                (descr
+                 (format "%s [%s]"
+                         (or (seq-find
+                              'stringp a)
+                             (seq-find
+                              (lambda (it)
+                                (and
+                                 (not (string-prefix-p "ivy-" it))
+                                 (functionp (intern it))))
+                              (split-string
+                               (format "%s" func)
+                               "[\s\f\t\n\r\v)(']+" t))
+                             "")
+                         key-str))
+                (no-exit (not (null (memq :no-exit a))))
+                (doc-func)
+                (doc))
+            (when func-name
+              (push func-name name-parts))
+            (setq name-parts (reverse (delete nil name-parts)))
+            (setq name (format "%s-action-%s" (string-join name-parts "-") i))
+            (setq doc-func (or (format "`%s'" func-name)
+                               "action"))
+            (setq doc (cond
+                       ((and (null arity)
+                             no-exit)
+                        (concat "Call "
+                                doc-func
+                                " without args.\n"
+                                "Doesn't quit minibuffer."))
+                       ((and (null arity)
+                             (null no-exit))
+                        (concat "Quit the minibuffer and calls "
+                                doc-func
+                                " without args."))
+                       ((and no-exit arity)
+                        (concat "Call " doc-func " with current candidate.\n"
+                                "Doesn't quit minibuffer."))
+                       (t (concat "Quit the minibuffer and call "
+                                  doc-func
+                                  " afterwards."))))
+            (define-key map keybind
+              (cond
+               ((and (null arity)
+                     no-exit)
+                (defalias (make-symbol name)
+                  (lambda ()
+                    (interactive)
+                    (funcall func))
+                  doc))
+               ((and (null arity)
+                     (null no-exit))
+                (defalias (make-symbol name)
+                  (lambda ()
+                    (interactive)
+                    (ivy-quit-and-run
+                      (funcall func)))
+                  doc))
+               ((and no-exit arity)
+                (defalias (make-symbol name)
+                  (lambda ()
+                    (interactive)
+                    (let ((current
+                           (or
+                            (ivy-state-current
+                             ivy-last)
+                            ivy-text))
+                          (window (ivy--get-window ivy-last)))
+                      (with-selected-window
+                          (ivy--get-window window)
+                        (funcall func current))))
+                  doc))
+               (t (defalias (make-symbol name)
+                    (lambda ()
+                      (interactive)
+                      (ivy-exit-with-action func))
+                    doc))))
+            (push (list action-key func descr) actions)))))
+    (setq actions (reverse (delete nil actions)))
     (cons map actions)))
 
 (defun defun-ivy-super-get-props (keywords pl)
@@ -159,7 +198,8 @@ which perfoms `ivy-read' with ARG-LIST. Usage:
   (declare (indent 1))
   `(let* ((arg-list ',arg-list)
           (actions (defun-ivy-bind-actions
-                     ,(plist-get arg-list :actions)))
+                     ,(plist-get arg-list :actions)
+                     ,(format "%s" name)))
           (global-key ,(plist-get arg-list :bind))
           (map))
      (setq map (car actions))
@@ -260,16 +300,18 @@ which perfoms `ivy-read' with ARG-LIST. Usage:
 :grep-p             An argument for `ivy-configure'.
 :exit-codes         An argument for `ivy-configure'."
   (declare (indent 1))
-  `(progn (require 'ivy)
-          (defvar ,(intern (format "%s-actions" name)) nil)
+  `(progn (defvar ,(intern (format "%s-actions" name)) nil)
+          (defvar ,(intern (format "%s-keymap" name)) nil)
           (setq ,(intern (format "%s-actions" name))
                 (defun-ivy-bind-actions
-                  ,(plist-get arg-list :actions)))
-          (ivy-set-actions ',name
-                           (cdr ,(intern (format "%s-actions" name))))
+                  ,(plist-get arg-list :actions)
+                  ,(format "%s" name)))
+          (setq ,(intern (format "%s-keymap" name)) (car ,(intern (format "%s-actions" name))))
+          (setq ,(intern (format "%s-actions" name)) (cdr ,(intern (format "%s-actions" name))))
           (defun ,name ()
             "Performs completions with `ivy-read'."
             (interactive)
+            (require 'ivy)
             ,(plist-get arg-list :init)
             (ivy-read ,(or (plist-get arg-list :prompt) "\s")
                       ,(plist-get arg-list :collection)
@@ -289,32 +331,31 @@ which perfoms `ivy-read' with ARG-LIST. Usage:
                             :dynamic-collection
                             :extra-props)
                           arg-list)
-                      :keymap (car ,(intern (format "%s-actions" name)))
-                      :action (nth 1 (cadr ,(intern (format "%s-actions" name))))
+                      :keymap ,(intern (format "%s-keymap" name))
+                      :action (nth 1 (car ,(intern (format "%s-actions" name))))
                       :caller ',name))
-          ;; (put ',name 'function-documentation
-          ;;      (format "Performs completions with `ivy-read' and actions:\s\n%s"
-          ;;              (defun-ivy-format-actions actions)))
-          ;; (put ',name 'function-documentation
-          ;;      "Performs completions with `ivy-read'.")
-          (ivy-configure ',name
-            :display-transformer-fn ,(plist-get arg-list :display-fn)
-            ,@(defun-ivy-super-get-props
-                '(:exit-codes
-                  :grep-p
-                  :more-chars
-                  :format-fn
-                  :sort-fn
-                  :index-fn
-                  :unwind-fn
-                  :update-fn
-                  :occur
-                  :height)
-                arg-list))
+          (with-eval-after-load "ivy"
+            (ivy-set-actions ',name
+                             ,(intern (format "%s-actions" name)))
+            (ivy-configure ',name
+              :display-transformer-fn ,(plist-get arg-list :display-fn)
+              ,@(defun-ivy-super-get-props
+                  '(:exit-codes
+                    :grep-p
+                    :more-chars
+                    :format-fn
+                    :sort-fn
+                    :index-fn
+                    :unwind-fn
+                    :update-fn
+                    :occur
+                    :height)
+                  arg-list)))
           (when ,(plist-get arg-list :bind)
             (global-set-key (kbd ,(plist-get arg-list :bind)) ',name))))
 
 (put 'defun-ivy+ 'lisp-indent-function 'defun)
 (put 'defun-ivy-read 'lisp-indent-function 'defun)
+
 (provide 'defun-ivy+)
 ;;; defun-ivy+.el ends here
