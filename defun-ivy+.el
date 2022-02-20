@@ -40,12 +40,14 @@
                                 "[\\[]")) "\s"))))
              mapped-actions "\n"))
 
-(defun defun-ivy-bind-actions (actions-list &optional command-name)
+(defun defun-ivy-bind-actions (actions &optional command-name)
+  "Map ACTIONS to cons cell whose car is keymap and cdr is ivy actions.
+Optional argument COMMAND-NAME is used for actions documentation."
   (let ((map (make-sparse-keymap))
-        (actions)
+        (result)
         (a)
         (i))
-    (while (setq a (pop actions-list))
+    (while (setq a (pop actions))
       (setq i (if i (1+ i) 0))
       (let ((name)
             (name-parts (list command-name)))
@@ -135,9 +137,9 @@
                       (interactive)
                       (ivy-exit-with-action func))
                     doc))))
-            (push (list action-key func descr) actions)))))
-    (setq actions (reverse (delete nil actions)))
-    (cons map actions)))
+            (push (list action-key func descr) result)))))
+    (setq result (reverse (delete nil result)))
+    (cons map result)))
 
 (defun defun-ivy-super-get-props (keywords pl)
   (let ((result)
@@ -149,8 +151,7 @@
     result))
 
 (defmacro defun-ivy-read (name args &rest arg-list)
-  "Defines and configure interactive command NAME,
-which perfoms `ivy-read' with ARG-LIST. Usage:
+  "Define NAME as a `ivy-read' command configured with ARG-LIST.
 
   (defun-ivy+ command-name
      [:keyword [option]]...)
@@ -249,12 +250,13 @@ which perfoms `ivy-read' with ARG-LIST. Usage:
              :occur
              :height)
            arg-list))
-     (when global-key
-       (global-set-key (kbd global-key) ',name))))
+     ,(when (stringp (plist-get arg-list :bind))
+        `(define-key global-map (kbd ,(plist-get arg-list :bind)) ',name))))
 
 (defmacro defun-ivy+ (name &rest arg-list)
-  "Defines and configure interactive command NAME,
-which perfoms `ivy-read' with ARG-LIST. Usage:
+  "Define NAME as a `ivy-read' command configured with ARG-LIST.
+
+Usage:
 
   (defun-ivy+ command-name
      [:keyword [option]]...)
@@ -287,8 +289,8 @@ which perfoms `ivy-read' with ARG-LIST. Usage:
 :dynamic-collection An argument for `ivy-read'.
 :extra-props        An argument for `ivy-read'.
 :sort               An argument for `ivy-read'.
-:sort-fn            An argument for `ivy-configure'.
 :display-fn         An argument for `ivy-configure' (`display-transformer-fn').
+:sort-fn            An argument for `ivy-configure'.
 :height             An argument for `ivy-configure'.
 :exit-codes         An argument for `ivy-configure'.
 :occur              An argument for `ivy-configure'.
@@ -306,8 +308,10 @@ which perfoms `ivy-read' with ARG-LIST. Usage:
                 (defun-ivy-bind-actions
                   ,(plist-get arg-list :actions)
                   ,(format "%s" name)))
-          (setq ,(intern (format "%s-keymap" name)) (car ,(intern (format "%s-actions" name))))
-          (setq ,(intern (format "%s-actions" name)) (cdr ,(intern (format "%s-actions" name))))
+          (setq ,(intern (format "%s-keymap" name))
+                (car ,(intern (format "%s-actions" name))))
+          (setq ,(intern (format "%s-actions" name))
+                (cdr ,(intern (format "%s-actions" name))))
           (defun ,name ()
             "Performs completions with `ivy-read'."
             (interactive)
@@ -332,7 +336,8 @@ which perfoms `ivy-read' with ARG-LIST. Usage:
                             :extra-props)
                           arg-list)
                       :keymap ,(intern (format "%s-keymap" name))
-                      :action (nth 1 (car ,(intern (format "%s-actions" name))))
+                      :action (nth 1 (car
+                                      ,(intern (format "%s-actions" name))))
                       :caller ',name))
           (with-eval-after-load "ivy"
             (ivy-set-actions ',name
@@ -351,8 +356,8 @@ which perfoms `ivy-read' with ARG-LIST. Usage:
                     :occur
                     :height)
                   arg-list)))
-          (when ,(plist-get arg-list :bind)
-            (global-set-key (kbd ,(plist-get arg-list :bind)) ',name))))
+          ,(when (stringp (plist-get arg-list :bind))
+             `(define-key global-map (kbd ,(plist-get arg-list :bind)) ',name))))
 
 (put 'defun-ivy+ 'lisp-indent-function 'defun)
 (put 'defun-ivy-read 'lisp-indent-function 'defun)
