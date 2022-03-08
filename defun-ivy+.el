@@ -115,8 +115,13 @@ Optional argument COMMAND-NAME is used for actions documentation."
                 (defalias (make-symbol name)
                   (lambda ()
                     (interactive)
-                    (ivy-quit-and-run
-                      (funcall func)))
+                    (put 'quit 'error-message "")
+                    (run-at-time nil nil
+                                 (lambda ()
+                                   (put 'quit 'error-message "Quit")
+                                   (with-demoted-errors "Error: %S"
+                                     (funcall func))))
+                    (abort-recursive-edit))
                   doc))
                ((and no-exit arity)
                 (defalias (make-symbol name)
