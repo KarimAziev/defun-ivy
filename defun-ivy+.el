@@ -24,7 +24,19 @@
 
 ;;; Code:
 
+
+(declare-function ivy-read "ivy")
+(declare-function ivy-state-current "ivy")
+(declare-function ivy-configure "ivy")
+(declare-function ivy-set-actions "ivy")
+(declare-function ivy--get-window "ivy")
+(declare-function ivy-exit-with-action "ivy")
+(defvar ivy-last)
+(defvar ivy-text)
+
+;;;###autoload
 (defun defun-ivy-format-actions (mapped-actions)
+  "Format MAPPED-ACTIONS."
   (mapconcat (lambda (it)
                (let ((parts
                       (string-join
@@ -40,6 +52,7 @@
                                 "[\\[]")) "\s"))))
              mapped-actions "\n"))
 
+;;;###autoload
 (defun defun-ivy-bind-actions (actions &optional command-name)
   "Map ACTIONS to cons cell whose car is keymap and cdr is ivy actions.
 Optional argument COMMAND-NAME is used for actions documentation."
@@ -102,51 +115,53 @@ Optional argument COMMAND-NAME is used for actions documentation."
                                   doc-func
                                   " afterwards."))))
             (define-key map keybind
-              (cond
-               ((and (null arity)
-                     no-exit)
-                (defalias (make-symbol name)
-                  (lambda ()
-                    (interactive)
-                    (funcall func))
-                  doc))
-               ((and (null arity)
-                     (null no-exit))
-                (defalias (make-symbol name)
-                  (lambda ()
-                    (interactive)
-                    (put 'quit 'error-message "")
-                    (run-at-time nil nil
-                                 (lambda ()
-                                   (put 'quit 'error-message "Quit")
-                                   (with-demoted-errors "Error: %S"
-                                     (funcall func))))
-                    (abort-recursive-edit))
-                  doc))
-               ((and no-exit arity)
-                (defalias (make-symbol name)
-                  (lambda ()
-                    (interactive)
-                    (let ((current
-                           (or
-                            (ivy-state-current
-                             ivy-last)
-                            ivy-text))
-                          (window (ivy--get-window ivy-last)))
-                      (with-selected-window
-                          (ivy--get-window window)
-                        (funcall func current))))
-                  doc))
-               (t (defalias (make-symbol name)
-                    (lambda ()
-                      (interactive)
-                      (ivy-exit-with-action func))
-                    doc))))
+                        (cond
+                         ((and (null arity)
+                               no-exit)
+                          (defalias (make-symbol name)
+                            (lambda ()
+                              (interactive)
+                              (funcall func))
+                            doc))
+                         ((and (null arity)
+                               (null no-exit))
+                          (defalias (make-symbol name)
+                            (lambda ()
+                              (interactive)
+                              (put 'quit 'error-message "")
+                              (run-at-time nil nil
+                                           (lambda ()
+                                             (put 'quit 'error-message "Quit")
+                                             (with-demoted-errors "Error: %S"
+                                               (funcall func))))
+                              (abort-recursive-edit))
+                            doc))
+                         ((and no-exit arity)
+                          (defalias (make-symbol name)
+                            (lambda ()
+                              (interactive)
+                              (let ((current
+                                     (or
+                                      (ivy-state-current
+                                       ivy-last)
+                                      ivy-text))
+                                    (window (ivy--get-window ivy-last)))
+                                (with-selected-window
+                                    (ivy--get-window window)
+                                  (funcall func current))))
+                            doc))
+                         (t (defalias (make-symbol name)
+                              (lambda ()
+                                (interactive)
+                                (ivy-exit-with-action func))
+                              doc))))
             (push (list action-key func descr) result)))))
     (setq result (reverse (delete nil result)))
     (cons map result)))
 
+;;;###autoload
 (defun defun-ivy-super-get-props (keywords pl)
+	"Get props KEYWORDS from PL."
   (let ((result)
         (keyword))
     (while (setq keyword (pop keywords))
@@ -156,7 +171,7 @@ Optional argument COMMAND-NAME is used for actions documentation."
     result))
 
 (defmacro defun-ivy-read (name args &rest arg-list)
-  "Define NAME as a `ivy-read' command configured with ARG-LIST.
+  "Define NAME as a `ivy-read' command configured with ARGS and ARG-LIST.
 
   (defun-ivy+ command-name
      [:keyword [option]]...)
@@ -204,8 +219,8 @@ Optional argument COMMAND-NAME is used for actions documentation."
   (declare (indent 1))
   `(let* ((arg-list ',arg-list)
           (actions (defun-ivy-bind-actions
-                     ,(plist-get arg-list :actions)
-                     ,(format "%s" name)))
+                    ,(plist-get arg-list :actions)
+                    ,(format "%s" name)))
           (global-key ,(plist-get arg-list :bind))
           (map))
      (setq map (car actions))
@@ -219,42 +234,44 @@ Optional argument COMMAND-NAME is used for actions documentation."
            (ivy-read ,(or (plist-get arg-list :prompt) "\s")
                      ,(plist-get arg-list :collection)
                      ,@(defun-ivy-super-get-props
-                         '(:predicate
-                           :require-match
-                           :initial-input
-                           :history
-                           :preselect
-                           :def
-                           :update-fn
-                           :sort
-                           :multi-action
-                           :unwind
-                           :re-builder
-                           :matcher
-                           :dynamic-collection
-                           :extra-props)
-                         arg-list)
+                        '(:predicate
+                          :require-match
+                          :initial-input
+                          :history
+                          :preselect
+                          :def
+                          :update-fn
+                          :sort
+                          :multi-action
+                          :unwind
+                          :re-builder
+                          :matcher
+                          :dynamic-collection
+                          :extra-props)
+                        arg-list)
                      :keymap map
                      :action (nth 1 (car actions))
                      :caller ',name)))
      (put ',name 'function-documentation
           (format "Performs completions with `ivy-read' and actions:\s\n%s"
                   (defun-ivy-format-actions actions)))
-     (ivy-set-actions ',name actions)
-     (ivy-configure ',name
-       :display-transformer-fn ,(plist-get arg-list :display-fn)
-       ,@(defun-ivy-super-get-props
-           '(:exit-codes
-             :grep-p
-             :more-chars
-             :format-fn
-             :sort-fn
-             :index-fn
-             :unwind-fn
-             :update-fn
-             :occur
-             :height)
-           arg-list))
+     (when (fboundp 'ivy-set-actions)
+       (ivy-set-actions ',name actions))
+     (when (fboundp 'ivy-configure)
+       (ivy-configure ',name
+         :display-transformer-fn ,(plist-get arg-list :display-fn)
+         ,@(defun-ivy-super-get-props
+            '(:exit-codes
+              :grep-p
+              :more-chars
+              :format-fn
+              :sort-fn
+              :index-fn
+              :unwind-fn
+              :update-fn
+              :occur
+              :height)
+            arg-list)))
      ,(when (stringp (plist-get arg-list :bind))
         `(define-key global-map (kbd ,(plist-get arg-list :bind)) ',name))))
 
@@ -311,8 +328,8 @@ Usage:
           (defvar ,(intern (format "%s-keymap" name)) nil)
           (setq ,(intern (format "%s-actions" name))
                 (defun-ivy-bind-actions
-                  ,(plist-get arg-list :actions)
-                  ,(format "%s" name)))
+                 ,(plist-get arg-list :actions)
+                 ,(format "%s" name)))
           (setq ,(intern (format "%s-keymap" name))
                 (car ,(intern (format "%s-actions" name))))
           (setq ,(intern (format "%s-actions" name))
@@ -325,42 +342,44 @@ Usage:
             (ivy-read ,(or (plist-get arg-list :prompt) "\s")
                       ,(plist-get arg-list :collection)
                       ,@(defun-ivy-super-get-props
-                          '(:predicate
-                            :require-match
-                            :initial-input
-                            :history
-                            :preselect
-                            :def
-                            :update-fn
-                            :sort
-                            :multi-action
-                            :unwind
-                            :re-builder
-                            :matcher
-                            :dynamic-collection
-                            :extra-props)
-                          arg-list)
+                         '(:predicate
+                           :require-match
+                           :initial-input
+                           :history
+                           :preselect
+                           :def
+                           :update-fn
+                           :sort
+                           :multi-action
+                           :unwind
+                           :re-builder
+                           :matcher
+                           :dynamic-collection
+                           :extra-props)
+                         arg-list)
                       :keymap ,(intern (format "%s-keymap" name))
                       :action (nth 1 (car
                                       ,(intern (format "%s-actions" name))))
                       :caller ',name))
           (with-eval-after-load "ivy"
-            (ivy-set-actions ',name
-                             ,(intern (format "%s-actions" name)))
-            (ivy-configure ',name
-              :display-transformer-fn ,(plist-get arg-list :display-fn)
-              ,@(defun-ivy-super-get-props
-                  '(:exit-codes
-                    :grep-p
-                    :more-chars
-                    :format-fn
-                    :sort-fn
-                    :index-fn
-                    :unwind-fn
-                    :update-fn
-                    :occur
-                    :height)
-                  arg-list)))
+            (when (fboundp 'ivy-set-actions)
+              (ivy-set-actions ',name
+                               ,(intern (format "%s-actions" name))))
+            (when (fboundp 'ivy-configure)
+              (ivy-configure ',name
+                :display-transformer-fn ,(plist-get arg-list :display-fn)
+                ,@(defun-ivy-super-get-props
+                   '(:exit-codes
+                     :grep-p
+                     :more-chars
+                     :format-fn
+                     :sort-fn
+                     :index-fn
+                     :unwind-fn
+                     :update-fn
+                     :occur
+                     :height)
+                   arg-list))))
           ,(when (stringp (plist-get arg-list :bind))
              `(define-key global-map (kbd ,(plist-get arg-list :bind)) ',name))))
 
