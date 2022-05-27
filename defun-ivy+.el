@@ -34,6 +34,40 @@
 (defvar ivy-last)
 (defvar ivy-text)
 
+(eval-when-compile
+  (require 'regexp-opt))
+
+(defcustom defun-ivy-regexp-eval
+  `(concat ,(eval-when-compile
+              (concat "^\\s-*("
+                      (regexp-opt '("defun-ivy+") t)
+                      "\\s-+\\("))
+           (or (bound-and-true-p lisp-mode-symbol-regexp)
+               "\\(?:\\sw\\|\\s_\\|\\\\.\\)+")
+           "\\)")
+  "Sexp providing regexp for finding `defun-ivy+' forms in user files.
+This is used by `defun-ivy-enable-imenu-support'."
+  :type 'sexp
+  :group 'defun-ivy+)
+
+(defcustom defun-ivy-enable-imenu-support t
+  "If non-nil, cause imenu to see `defun-ivy+' declarations.
+This is done by adjusting `lisp-imenu-generic-expression' to
+include support for finding `defun-ivy+' forms.
+
+Must be set before loading Defun-Ivye."
+  :type 'boolean
+  :set
+  #'(lambda (_sym value)
+      (eval-after-load 'lisp-mode
+        (if value
+            `(add-to-list 'lisp-imenu-generic-expression
+                          (list "Defun-Ivy" ,defun-ivy-regexp-eval 2))
+          `(setq lisp-imenu-generic-expression
+                 (remove (list "Defun-Ivy" ,defun-ivy-regexp-eval 2)
+                         lisp-imenu-generic-expression)))))
+  :group 'defun-ivy+)
+
 ;;;###autoload
 (defun defun-ivy-format-actions (mapped-actions)
   "Format MAPPED-ACTIONS."
