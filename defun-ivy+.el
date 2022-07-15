@@ -360,14 +360,6 @@ Usage:
   (declare (indent 1))
   `(progn (defvar ,(intern (format "%s-actions" name)) nil)
           (defvar ,(intern (format "%s-keymap" name)) nil)
-          (setq ,(intern (format "%s-actions" name))
-                (defun-ivy-bind-actions
-                 ,(plist-get arg-list :actions)
-                 ,(format "%s" name)))
-          (setq ,(intern (format "%s-keymap" name))
-                (car ,(intern (format "%s-actions" name))))
-          (setq ,(intern (format "%s-actions" name))
-                (cdr ,(intern (format "%s-actions" name))))
           (defun ,name ()
             "Performs completions with `ivy-read'."
             (interactive)
@@ -397,6 +389,14 @@ Usage:
                       :caller ',name))
           (with-eval-after-load "ivy"
             (when (fboundp 'ivy-set-actions)
+              (setq ,(intern (format "%s-actions" name))
+                    (defun-ivy-bind-actions
+                     ,(plist-get arg-list :actions)
+                     ,(format "%s" name)))
+              (setq ,(intern (format "%s-keymap" name))
+                    (car ,(intern (format "%s-actions" name))))
+              (setq ,(intern (format "%s-actions" name))
+                    (cdr ,(intern (format "%s-actions" name))))
               (ivy-set-actions ',name
                                ,(intern (format "%s-actions" name))))
             (when (fboundp 'ivy-configure)
@@ -415,7 +415,8 @@ Usage:
                      :height)
                    arg-list))))
           ,(when (stringp (plist-get arg-list :bind))
-             `(define-key global-map (kbd ,(plist-get arg-list :bind)) ',name))))
+             `(define-key global-map (kbd ,(plist-get arg-list :bind))
+                          ',name))))
 
 (put 'defun-ivy+ 'lisp-indent-function 'defun)
 (put 'defun-ivy-read 'lisp-indent-function 'defun)
