@@ -195,7 +195,7 @@ Optional argument COMMAND-NAME is used for actions documentation."
 
 ;;;###autoload
 (defun defun-ivy-super-get-props (keywords pl)
-	"Get props KEYWORDS from PL."
+  "Get props KEYWORDS from PL."
   (let ((result)
         (keyword))
     (while (setq keyword (pop keywords))
