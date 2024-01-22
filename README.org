@@ -1,14 +1,60 @@
 #+TITLE: defun-ivy+
 #+AUTHOR: Karim Aziiev
 #+EMAIL: karim.aziiev@gmail.com
-#+DATE: 2021
 #+LANGUAGE: en
-#+TEXINFO_DEFFN: t
-#+OPTIONS: H:4 num:3 toc:2 creator:t
+#+OPTIONS: ^:nil tags:nil num:nil
 
-The `defun-ivy` macro allows you to easy define commands based on `ivy-read`.
+* About
 
-** Example
+The =defun-ivy+= macro simplifies the creation of custom commands utilizing =ivy-read= for enhanced Emacs completion experiences.
+
+* Table of Contents                                       :TOC_2_gh:QUOTE:
+#+BEGIN_QUOTE
+- [[#about][About]]
+- [[#requirements][Requirements]]
+- [[#installation][Installation]]
+  - [[#with-use-package-and-straightel][With use-package and straight.el]]
+  - [[#manual-installation][Manual installation]]
+- [[#usage-example][Usage Example]]
+- [[#customization][Customization]]
+- [[#arguments][Arguments]]
+#+END_QUOTE
+
+* Requirements
+
+| Name  | Version |
+|-------+---------|
+| Emacs |    25.1 |
+
+
+* Installation
+
+** With use-package and straight.el
+#+begin_src elisp :eval no
+(use-package defun-ivy+
+  :straight (defun-ivy+
+              :repo "KarimAziev/defun-ivy"
+              :type git
+              :host github))
+#+end_src
+
+** Manual installation
+
+Download the source code and put it wherever you like, e.g. into =~/.emacs.d/defun-ivy/=
+
+#+begin_src shell :eval no
+git clone https://github.com/KarimAziev/defun-ivy.git ~/.emacs.d/defun-ivy/
+#+end_src
+
+Add the downloaded directory to the load path:
+
+#+begin_src elisp :eval no
+(add-to-list 'load-path "~/.emacs.d/defun-ivy/")
+(require 'defun-ivy+)
+#+end_src
+
+
+* Usage Example
 
 #+BEGIN_SRC emacs-lisp
 (defun-ivy+ km-browse-ivy-chrome-history
@@ -23,49 +69,31 @@ The `defun-ivy` macro allows you to easy define commands based on `ivy-read`.
              ("RET" km-browse-action-default "chrome")
              ("C-c x" km-browse-xvidget-action)
              ("C-c k d" km-browse-download-url :no-exit))
-  :display-fn 'km-browse-display-fn)
-
+  :display-fn #'km-browse-display-fn)
 #+END_SRC
 
-** Arguments
+* Customization
+
+**** ~defun-ivy-enable-imenu-support~
+If non-nil, cause imenu to see =defun-ivy+= declarations. This is done by adjusting =lisp-imenu-generic-expression= to include support for finding =defun-ivy+= forms. Must be set before loading Defun-Ivye.
+**** ~defun-ivy-regexp-eval~
+Sexp providing regexp for finding =defun-ivy+= forms in user files. This is used by =defun-ivy-enable-imenu-support=.
 
 
-|:actions           | A list of actions `(KEYBINDING ACTION DESCRIPTION)'.
-|                   | Can also contain keyword `:no-exit' to call action without
-|                   | exiting minibuffer.
-|                   | For example:
-|                   | `((\"C-c s\" my-action-1 \"description 1\")
-|                   |   (\"C-c i\" my-action-2 \"description 2\" :no-exit))'.
-|:bind              | A global keybinding for invoking you command.
-|:init              | A form to execute before `ivy-read'.
-|:prompt            | A string, normally ending in a colon and a space.
-|                   | Default value for prompt is empty string.
-|:collection        | An argument for `ivy-read'
-|:predicate         | An argument for `ivy-read'.
-|:require-match     | An argument for `ivy-read'.
-|:initial-input     | An argument for `ivy-read'.
-|:history           | An argument for `ivy-read'.
-|:preselect         | An argument for `ivy-read'.
-|:def               | An argument for `ivy-read'.
-|:keymap            | An argument for `ivy-read'.
-|:update-fn         | An argument for `ivy-read'.
-|:action            | An argument for `ivy-read'.
-|:multi-action      | An argument for `ivy-read'.
-|:unwind            | An argument for `ivy-read'.
-|:re-builder        | An argument for `ivy-read'.
-|:matcher           | An argument for `ivy-read'.
-|:dynamic-collection| An argument for `ivy-read'.
-|:extra-props       | An argument for `ivy-read'.
-|:sort              | An argument for `ivy-read'.
-|:sort-fn           | An argument for `ivy-configure'.
-|:display-fn        | An argument for `ivy-configure'
-|:height            | An argument for `ivy-configure'.
-|:exit-codes        | An argument for `ivy-configure'.
-|:occur             | An argument for `ivy-configure'.
-|:update-fn         | An argument for `ivy-configure'.
-|:unwind-fn         | An argument for `ivy-configure'.
-|:index-fn          | An argument for `ivy-configure'.
-|:format-fn         | An argument for `ivy-configure'.
-|:more-chars        | An argument for `ivy-configure'.
-|:grep-p            | An argument for `ivy-configure'.
-|:exit-codes        | An argument for `ivy-configure'."
+* Arguments
+
+This table outlines the various keywords you can pass to =defun-ivy+= and their associated actions:
+
+| Argument      | Description                                                                                                                                                                                                                                                             |
+|---------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| =:actions=    | List of actions =(KEYBINDING ACTION DESCRIPTION)=. The =:no-exit= keyword can be included to call an action without exiting the minibuffer.                                                                                                                             |
+| =:bind=       | Global keybinding for invoking the command.                                                                                                                                                                                                                             |
+| =:init=       | Form to execute before =ivy-read=.                                                                                                                                                                                                                                      |
+| =:prompt=     | String normally ending in a colon and a space. The default prompt is an empty string.                                                                                                                                                                                   |
+| =:collection= | Specifies the collection for =ivy-read=.                                                                                                                                                                                                                                |
+| ...           | Additional =ivy-read= arguments like =:predicate=, =:require-match=, =:initial-input=, =:history=, =:preselect=, =:def=, =:keymap=, =:update-fn=, =:action=, =:multi-action=, =:unwind=, =:re-builder=, =:matcher=, =:dynamic-collection=, =:extra-props=, and =:sort=. |
+| =:sort-fn=    | Function for =ivy-configure= to sort candidates.                                                                                                                                                                                                                        |
+| =:display-fn= | Function for =ivy-configure= to display candidates.                                                                                                                                                                                                                     |
+| ...           | Additional =ivy-configure= options like =:height=, =:exit-codes=, =:occur=, =:update-fn=, =:unwind-fn=, =:index-fn=, =:format-fn=, =:more-chars=, =:grep-p=, and =:exit-codes=.                                                                                         |
+
+To see the full range of arguments and their effects, consult the complete documentation within the source.
