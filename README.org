@@ -8,6 +8,22 @@
 
 The =defun-ivy+= macro simplifies the creation of custom commands utilizing =ivy-read= for enhanced Emacs completion experiences.
 
+#+BEGIN_SRC emacs-lisp
+(defun-ivy+ km-browse-ivy-chrome-history
+  :bind "C-c g h"
+  :collection (km-browse-init-chrome-history-candidates)
+  :prompt "Select history\s"
+  :initial-input (km-get-word-or-region)
+  :multi-action (lambda (marked)
+                  (dolist (it marked)
+                    (km-browse-action-default it)))
+  :actions '(("C-j" km-browse-eww-action "eww")
+             ("RET" km-browse-action-default "chrome")
+             ("C-c x" km-browse-xvidget-action)
+             ("C-c k d" km-browse-download-url :no-exit))
+  :display-fn #'km-browse-display-fn)
+#+END_SRC
+
 * Table of Contents                                       :TOC_2_gh:QUOTE:
 #+BEGIN_QUOTE
 - [[#about][About]]
@@ -15,9 +31,8 @@ The =defun-ivy+= macro simplifies the creation of custom commands utilizing =ivy
 - [[#installation][Installation]]
   - [[#with-use-package-and-straightel][With use-package and straight.el]]
   - [[#manual-installation][Manual installation]]
-- [[#usage-example][Usage Example]]
-- [[#customization][Customization]]
 - [[#arguments][Arguments]]
+- [[#customization][Customization]]
 #+END_QUOTE
 
 * Requirements
@@ -54,31 +69,6 @@ Add the downloaded directory to the load path:
 #+end_src
 
 
-* Usage Example
-
-#+BEGIN_SRC emacs-lisp
-(defun-ivy+ km-browse-ivy-chrome-history
-  :bind "C-c g h"
-  :collection (km-browse-init-chrome-history-candidates)
-  :prompt "Select history\s"
-  :initial-input (km-get-word-or-region)
-  :multi-action (lambda (marked)
-                  (dolist (it marked)
-                    (km-browse-action-default it)))
-  :actions '(("C-j" km-browse-eww-action "eww")
-             ("RET" km-browse-action-default "chrome")
-             ("C-c x" km-browse-xvidget-action)
-             ("C-c k d" km-browse-download-url :no-exit))
-  :display-fn #'km-browse-display-fn)
-#+END_SRC
-
-* Customization
-
-**** ~defun-ivy-enable-imenu-support~
-If non-nil, cause imenu to see =defun-ivy+= declarations. This is done by adjusting =lisp-imenu-generic-expression= to include support for finding =defun-ivy+= forms. Must be set before loading Defun-Ivye.
-**** ~defun-ivy-regexp-eval~
-Sexp providing regexp for finding =defun-ivy+= forms in user files. This is used by =defun-ivy-enable-imenu-support=.
-
 
 * Arguments
 
@@ -97,3 +87,10 @@ This table outlines the various keywords you can pass to =defun-ivy+= and their 
 | ...           | Additional =ivy-configure= options like =:height=, =:exit-codes=, =:occur=, =:update-fn=, =:unwind-fn=, =:index-fn=, =:format-fn=, =:more-chars=, =:grep-p=, and =:exit-codes=.                                                                                         |
 
 To see the full range of arguments and their effects, consult the complete documentation within the source.
+
+* Customization
+
+**** ~defun-ivy-enable-imenu-support~
+If non-nil, cause imenu to see =defun-ivy+= declarations. This is done by adjusting =lisp-imenu-generic-expression= to include support for finding =defun-ivy+= forms. Must be set before loading Defun-Ivye.
+**** ~defun-ivy-regexp-eval~
+Sexp providing regexp for finding =defun-ivy+= forms in user files. This is used by =defun-ivy-enable-imenu-support=.
