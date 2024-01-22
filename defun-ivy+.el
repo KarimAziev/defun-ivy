@@ -1,26 +1,57 @@
-;;; defun-ivy+.el --- A macro to quickly create completions command with ivy-read.  -*- lexical-binding: t; -*-
+;;; defun-ivy+.el --- A macro to quickly create completions command with ivy-read -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021  Karim Aziiev
+;; Copyright (C) Karim Aziiev <karim.aziiev@gmail.com>
 
 ;; Author: Karim Aziiev <karim.aziiev@gmail.com>
 ;; Keywords: abbrev
+;; URL: https://github.com/KarimAziev/defun-ivy
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "25.1"))
+;; SPDX-License-Identifier: GPL-3.0-or-later
+
+;; This file is NOT part of GNU Emacs.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation, either version 3 of the License, or
-;; (at your option) any later version.
-
+;; the Free Software Foundation; either version 3, or (at your option)
+;; any later version.
+;;
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
-
+;;
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
+;; The defun-ivy+.el library introduces two Lisp macros, `defun-ivy+' and
+;; `defun-ivy-read', designed to simplify the creation of `ivy-read'
+;; completion commands. It extends the functionality of Ivy, a completion
+;; method that provides an easy-to-use interface for narrowing down and
+;; selecting from a list of options in Emacs.
 ;;
+;; `defun-ivy+': This macro defines a new Ivy completion command, including
+;; keybindings, initialization functions, and customizable prompts, among other
+;; options. It allows users to define actions that can be triggered from the
+;; Ivy minibuffer with specified keybindings.
+;;
+;; `defun-ivy-read': A pared-down counterpart to `defun-ivy+', this macro
+;; accepts a name, argument list, and additional Ivy-related properties to
+;; quickly configure and generate an Ivy completion command.
+;;
+;; Usage examples of both macros are included in the documentation strings,
+;; illustrating how to specify collections, actions, and various Ivy
+;; properties. The flexibility in defining multiple actions, bindings, and
+;; configurations with these macros significantly reduces the complexity of
+;; integrating custom completion workflows into Emacs.
+;;
+;; Additionally, the library's custom variables - `defun-ivy-regexp-eval' and
+;; `defun-ivy-enable-imenu-support' - provide support for Imenu integration,
+;; offering better navigation of the completion command definitions within
+;; source files. Users can toggle Imenu support for `defun-ivy+' commands with
+;; the `defun-ivy-enable-imenu-support' customization option.
 
 ;;; Code:
 
@@ -110,7 +141,7 @@ Optional argument COMMAND-NAME is used for actions documentation."
                 (descr
                  (format "%s [%s]"
                          (or (seq-find
-                              'stringp a)
+                              #'stringp a)
                              (seq-find
                               (lambda (it)
                                 (and
